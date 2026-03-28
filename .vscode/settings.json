@@ -1,4 +1,9 @@
 {
     "python-envs.defaultEnvManager": "ms-python.python:conda",
-    "python-envs.defaultPackageManager": "ms-python.python:conda"
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
+    //代理
+    // "terminal.integrated.env.windows": {
+    //     "http_proxy": "http://127.0.0.1:7897",
+    //     "https_proxy": "http://127.0.0.1:7897"
+    //     }
 }
