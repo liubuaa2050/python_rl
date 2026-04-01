@@ -30,7 +30,7 @@ class VTOL_SF:
     # 推力系数
     CT = 2.618e-05 / (2*np.pi)**2
 
-    def __init__(self, init_state=np.array([0,0,0, 0,0,np.pi/2, 0,0,0, 0,0,0], dtype=np.float32), dt=0.01):
+    def __init__(self, init_state=np.array([0,0,0, 0,0,np.pi/2, 0,0,0, 0.0,0.0,0.0], dtype=np.float32), dt=0.01):
         self.dt = dt
         # 状态初始化
         self.state = init_state  # [x,y,z, yaw,roll,pitch, vx,vy,vz, wx,wy,wz]
@@ -67,7 +67,8 @@ class VTOL_SF:
     
     def step(self, control):
         # state_dot = self.StateFcn_self_6DOF(1, self.state, control)
-        # self.state = self.state + state_dot * self.dt
+        # self.state = (self.state.astype(float) + state_dot * self.dt).astype(np.float32)
+        # print(f"state_dot: {state_dot}")
         # success = 1
 
         sol = solve_ivp(
@@ -83,7 +84,7 @@ class VTOL_SF:
          # 更新状态（判断求解是否成功）
         success = sol.success
         if success:
-            self.state = sol.y[:, -1]  # sol.y是二维数组，取最后一列（dt时刻状态）
+            self.state = (sol.y[:, -1]).astype(np.float32)  # sol.y是二维数组，取最后一列（dt时刻状态）
         else:
             print(f"ODE求解失败！原因：{sol.message}")
 
@@ -94,13 +95,22 @@ class VTOL_SF:
         六自由度无人机状态导数函数
         """
 
+        state_64 = state.astype(float)
+        control_64 = control.astype(float)
+
         # 提取状态
-        yaw = state[3]
-        roll = state[4]
-        pitch = state[5]
-        v = state[6:9]          # 地面速度
-        euler_dot = state[9:12]  # [yaw_dot, roll_dot, pitch_dot]
-        yaw_dot, roll_dot, pitch_dot = euler_dot
+        yaw = state_64[3]
+        roll = state_64[4]
+        pitch = state_64[5]
+        v = state_64[6:9]          # 地面速度
+        # euler_dot = state_64[9:12]  # [yaw_dot, roll_dot, pitch_dot]
+        # yaw_dot, roll_dot, pitch_dot = euler_dot
+        wq = state_64[9:12]
+        R_wq2deulerdot = np.array([[np.cos(pitch), 0, np.sin(pitch)],
+            [np.sin(pitch)*np.tan(roll), 1, -np.cos(pitch)*np.tan(roll)],
+            [-np.sin(pitch)/np.cos(roll), 0, np.cos(pitch)/np.cos(roll)]])
+        temp_euler_dot = R_wq2deulerdot @ wq
+        euler_dot = np.array([temp_euler_dot[2], temp_euler_dot[0], temp_euler_dot[1]])
 
         # 旋转矩阵 (机体 -> 地面)
         R_b2e = self.eul2rotm_zxy_symbolic(yaw, pitch, roll)
@@ -117,10 +127,10 @@ class VTOL_SF:
         Cm, _, _ = self.CX_dCX_ddCX_fit_single_seg(alpha, self.paramsCM)
 
         # 控制量
-        delta1 = control[0]
-        delta2 = control[1]
-        rpm1 = 2000 * control[2]
-        rpm2 = 2000 * control[3]
+        delta1 = control_64[0]
+        delta2 = control_64[1]
+        rpm1 = 2000 * control_64[2]
+        rpm2 = 2000 * control_64[3]
         Th1 = self.CT * rpm1**2
         Th2 = self.CT * rpm2**2
 
@@ -151,11 +161,11 @@ class VTOL_SF:
         # 总外力 (地面系)
         F_mat = F_Th + F_aero + F_G
 
-        # 机体角速度 (从欧拉角速度转换)
-        R_eulerdot2wq = np.array([[np.cos(pitch), 0, -np.cos(roll)*np.sin(pitch)],
-                                [0,              1,  np.sin(roll)],
-                                [np.sin(pitch), 0,  np.cos(pitch)*np.cos(roll)]])
-        wq = R_eulerdot2wq @ euler_dot   # 机体角速度 [p; q; r]
+        # # 机体角速度 (从欧拉角速度转换)
+        # R_eulerdot2wq = np.array([[np.cos(pitch), 0, -np.cos(roll)*np.sin(pitch)],
+        #                         [0,              1,  np.sin(roll)],
+        #                         [np.sin(pitch), 0,  np.cos(pitch)*np.cos(roll)]])
+        # wq = R_eulerdot2wq @ euler_dot   # 机体角速度 [p; q; r]
 
         # 推力力矩 (机体坐标系)
         M_Th_x = -self.l_army * (F_Th1_b[2] - F_Th2_b[2])
@@ -245,14 +255,15 @@ class VTOL_SF:
 
 
 if __name__ == "__main__":
+    # vtol_test = VTOL_SF(dt=0.01,init_state=np.array([0,0,0, 0,0,np.pi/2, 2,2,2, 0.5,0.5,0.5]))
     vtol_test = VTOL_SF(dt=0.01)
     formatted_state = [f"{x:.2f}" for x in vtol_test.state]
     print(f"vtol_state: {formatted_state}")
-    for _ in range(1, 100):
-        _, success = vtol_test.step(np.array([0.0, 0.0, 0.8, 0.8]))
+    for i in range(1, 30):
+        _, success = vtol_test.step(np.array([0.0, -0.0, 0.5, 0.5]))
         if success:
             formatted_state = [f"{x:.2f}" for x in vtol_test.state]
-            print(f"vtol_state: {formatted_state}")
+            print(f"{i}--vtol_state: {formatted_state}")
         else:
             break
 
