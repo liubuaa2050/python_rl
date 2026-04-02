@@ -106,10 +106,10 @@ class VTOL_SF:
         # euler_dot = state_64[9:12]  # [yaw_dot, roll_dot, pitch_dot]
         # yaw_dot, roll_dot, pitch_dot = euler_dot
         wq = state_64[9:12]
-        R_wq2deulerdot = np.array([[np.cos(pitch), 0, np.sin(pitch)],
+        R_wq2eulerdot = np.array([[np.cos(pitch), 0, np.sin(pitch)],
             [np.sin(pitch)*np.tan(roll), 1, -np.cos(pitch)*np.tan(roll)],
             [-np.sin(pitch)/np.cos(roll), 0, np.cos(pitch)/np.cos(roll)]])
-        temp_euler_dot = R_wq2deulerdot @ wq
+        temp_euler_dot = R_wq2eulerdot @ wq
         euler_dot = np.array([temp_euler_dot[2], temp_euler_dot[0], temp_euler_dot[1]])
 
         # 旋转矩阵 (机体 -> 地面)
