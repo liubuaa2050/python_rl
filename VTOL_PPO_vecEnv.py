@@ -60,7 +60,7 @@ class Train_self:
         # 网络结构
         policy_kwargs = dict(
             activation_fn=torch.nn.ReLU,
-            net_arch=dict(pi=[32, 64, 64, 32], vf=[32, 64, 64, 32]), #1.8.0之后不支持共享网络层
+            net_arch=dict(pi=[128, 256, 256, 128], vf=[128, 256, 256, 128]), #1.8.0之后不支持共享网络层
         )
 
         # 创建模型
@@ -120,7 +120,7 @@ class Train_self:
 
 if __name__ == "__main__":
 
-    train_ppo = Train_self(total_timesteps=1e7, n_envs=min(4, os.cpu_count()))
+    train_ppo = Train_self(total_timesteps=1e8, n_envs=min(4, os.cpu_count()))
 
     train_ppo.train_with_monitor()
 

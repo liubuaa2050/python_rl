@@ -27,7 +27,7 @@ class VTOLEnv(gym.Env):
     def __init__(self, max_step=1000):
         super().__init__()
         # 定义动作空间和观测空间（例如）
-        self.action_space = spaces.Box(low=np.array([-np.pi, -np.pi, 0, 0],dtype=np.float32), high=np.array([np.pi, np.pi, 1, 1],dtype=np.float32), shape=(4,),)
+        self.action_space = spaces.Box(low=np.array([-np.pi/2, -np.pi/2, 0.2, 0.2],dtype=np.float32), high=np.array([np.pi/2, np.pi/2, 0.8, 0.8],dtype=np.float32), shape=(4,),)
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(12,))
 
         # 后续可以考虑进行动作归一化
